@@ -1,9 +1,27 @@
 use egui::{FontData, FontDefinitions, FontFamily};
 
+use crate::{
+    anchor::Anchor,
+    apps::{DebugApp, DetailApp, ListApp},
+};
+
+/// The state that we persist (serialize).
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[serde(default)]
+pub struct State {
+    list: ListApp,
+    detail: DetailApp,
+    debug: DebugApp,
+
+    selected_anchor: Anchor,
+}
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
+    pub state: State,
+
     // Example stuff:
     label: String,
 
@@ -14,6 +32,7 @@ pub struct TemplateApp {
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
+            state: State::default(),
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
@@ -70,6 +89,41 @@ impl TemplateApp {
     }
 }
 
+impl TemplateApp {
+    pub fn apps_iter_mut(
+        &mut self,
+    ) -> impl Iterator<Item = (&'static str, Anchor, &mut dyn eframe::App)> {
+        let vec = vec![
+            (
+                "✨ List",
+                Anchor::List,
+                &mut self.state.list as &mut dyn eframe::App,
+            ),
+            (
+                "🕑 Detail",
+                Anchor::Detail,
+                &mut self.state.detail as &mut dyn eframe::App,
+            ),
+            (
+                "⬇ Debug",
+                Anchor::Debug,
+                &mut self.state.debug as &mut dyn eframe::App,
+            ),
+        ];
+
+        vec.into_iter()
+    }
+
+    fn show_selected_app(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        let selected_anchor = self.state.selected_anchor;
+        for (_name, anchor, app) in self.apps_iter_mut() {
+            if anchor == selected_anchor || ctx.memory(|mem| mem.everything_is_visible()) {
+                app.update(ctx, frame);
+            }
+        }
+    }
+}
+
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
@@ -77,7 +131,7 @@ impl eframe::App for TemplateApp {
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
@@ -85,6 +139,10 @@ impl eframe::App for TemplateApp {
             // The top panel is often a good place for a menu bar:
 
             egui::menu::bar(ui, |ui| {
+                egui::widgets::global_theme_preference_switch(ui);
+
+                ui.separator();
+
                 // NOTE: no File->Quit on web pages!
                 let is_web = cfg!(target_arch = "wasm32");
                 if !is_web {
@@ -94,51 +152,27 @@ impl eframe::App for TemplateApp {
                         }
                     });
                     ui.add_space(16.0);
+
+                    ui.separator();
                 }
 
-                egui::widgets::global_theme_preference_buttons(ui);
+                let mut selected_anchor = self.state.selected_anchor;
+                for (name, anchor, _app) in self.apps_iter_mut() {
+                    if ui
+                        .selectable_label(selected_anchor == anchor, name)
+                        .clicked()
+                    {
+                        selected_anchor = anchor;
+                        if frame.is_web() {
+                            ui.ctx()
+                                .open_url(egui::OpenUrl::same_tab(format!("#{anchor}")));
+                        }
+                    }
+                }
+                self.state.selected_anchor = selected_anchor;
             });
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("eframe template");
-
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
-            });
-
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
-            }
-
-            ui.separator();
-
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/main/",
-                "Source code."
-            ));
-
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                powered_by_egui_and_eframe(ui);
-                egui::warn_if_debug_build(ui);
-            });
-        });
+        self.show_selected_app(ctx, frame);
     }
-}
-
-fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 0.0;
-        ui.label("Powered by ");
-        ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        ui.label(" and ");
-        ui.hyperlink_to(
-            "eframe",
-            "https://github.com/emilk/egui/tree/master/crates/eframe",
-        );
-        ui.label(".");
-    });
 }
