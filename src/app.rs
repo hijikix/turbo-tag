@@ -1,7 +1,7 @@
 use egui::{FontData, FontDefinitions, FontFamily};
 
 use crate::{
-    anchor::Anchor,
+    anchor::{get_next_page, Anchor, AppWithPage},
     apps::{DebugApp, DetailApp, ListApp},
 };
 
@@ -92,22 +92,22 @@ impl TemplateApp {
 impl TemplateApp {
     pub fn apps_iter_mut(
         &mut self,
-    ) -> impl Iterator<Item = (&'static str, Anchor, &mut dyn eframe::App)> {
+    ) -> impl Iterator<Item = (&'static str, Anchor, &mut dyn AppWithPage)> {
         let vec = vec![
             (
                 "✨ List",
                 Anchor::List,
-                &mut self.state.list as &mut dyn eframe::App,
+                &mut self.state.list as &mut dyn AppWithPage,
             ),
             (
                 "🕑 Detail",
                 Anchor::Detail,
-                &mut self.state.detail as &mut dyn eframe::App,
+                &mut self.state.detail as &mut dyn AppWithPage,
             ),
             (
                 "⬇ Debug",
                 Anchor::Debug,
-                &mut self.state.debug as &mut dyn eframe::App,
+                &mut self.state.debug as &mut dyn AppWithPage,
             ),
         ];
 
@@ -170,6 +170,19 @@ impl eframe::App for TemplateApp {
                     }
                 }
                 self.state.selected_anchor = selected_anchor;
+
+                // move page if move_to_page method called
+                if let Some(next_page) = get_next_page(ctx) {
+                    for (_name, anchor, app) in self.apps_iter_mut() {
+                        if anchor == next_page.anchor
+                            || ctx.memory(|mem| mem.everything_is_visible())
+                        {
+                            // initialize next_page
+                            app.on_move_page(ctx, &next_page.params);
+                        }
+                    }
+                    self.state.selected_anchor = next_page.anchor;
+                }
             });
         });
 
