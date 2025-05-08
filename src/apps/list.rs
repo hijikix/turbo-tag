@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::anchor::{move_to_page, Anchor, AppPage, NextPage};
+use crate::anchor::{Anchor, AppPage, NextPage, move_to_page};
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct ListApp {

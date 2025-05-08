@@ -1,7 +1,7 @@
 use egui::{FontData, FontDefinitions, FontFamily};
 
 use crate::{
-    anchor::{get_next_page, Anchor, AppWithPage},
+    anchor::{Anchor, AppWithPage, get_next_page},
     apps::{DebugApp, DetailApp, ListApp},
 };
 
