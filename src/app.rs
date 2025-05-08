@@ -1,7 +1,7 @@
 use egui::{FontData, FontDefinitions, FontFamily};
 
 use crate::{
-    anchor::{get_next_page, Anchor, AppWithPage},
+    anchor::{Anchor, AppWithPage, get_next_page},
     apps::{DebugApp, DetailApp, ListApp},
 };
 
@@ -178,7 +178,7 @@ impl eframe::App for TemplateApp {
                             || ctx.memory(|mem| mem.everything_is_visible())
                         {
                             // initialize next_page
-                            app.on_move_page(&next_page.params);
+                            app.on_move_page(ctx, &next_page.params);
                         }
                     }
                     self.state.selected_anchor = next_page.anchor;

@@ -8,7 +8,7 @@ pub struct DebugApp {
 }
 
 impl AppPage for DebugApp {
-    fn on_move_page(&mut self, _params: &HashMap<String, String>) {}
+    fn on_move_page(&mut self, _ctx: &egui::Context, _params: &HashMap<String, String>) {}
 }
 
 impl eframe::App for DebugApp {

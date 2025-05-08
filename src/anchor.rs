@@ -71,7 +71,7 @@ pub fn get_next_page(ctx: &egui::Context) -> Option<NextPage> {
 }
 
 pub trait AppPage {
-    fn on_move_page(&mut self, params: &HashMap<String, String>);
+    fn on_move_page(&mut self, ctx: &egui::Context, params: &HashMap<String, String>);
 }
 
 // Define a new trait that combines eframe::App and AppPage
